@@ -41,6 +41,15 @@ class UKF {
    */
   void UpdateRadar(MeasurementPackage meas_package);
 
+  /**
+   * Generate sigma points and save them in Xsig
+   */
+  void GenerateSigmaPoints(Eigen::MatrixXd &Xsig);
+
+  /**
+   * Design the matrices of augmented state and augmented covariance
+   */
+  void AugmentState();
 
   // initially set to false, set to true in first call of ProcessMeasurement
   bool is_initialized_;
@@ -54,11 +63,20 @@ class UKF {
   // state vector: [pos1 pos2 vel_abs yaw_angle yaw_rate] in SI units and rad
   Eigen::VectorXd x_;
 
+  Eigen::VectorXd x_aug_;
+
+
   // state covariance matrix
   Eigen::MatrixXd P_;
 
+  Eigen::MatrixXd P_aug_;
+
   // predicted sigma points matrix
   Eigen::MatrixXd Xsig_pred_;
+
+  // augmented sigma points matrix
+  Eigen::MatrixXd Xsig_aug_;
+
 
   // time when the state is true, in us
   long long time_us_;
