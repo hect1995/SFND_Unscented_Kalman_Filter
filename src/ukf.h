@@ -44,7 +44,7 @@ class UKF {
   /**
    * Generate sigma points and save them in Xsig
    */
-  void GenerateSigmaPoints(Eigen::MatrixXd &Xsig);
+  void GenerateSigmaPoints();
 
   /**
    * Design the matrices of augmented state and augmented covariance

@@ -1,6 +1,7 @@
 #include "ukf.h"
 #include "Eigen/Dense"
 #include <math.h>
+#include <iostream>
 
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -28,10 +29,10 @@ UKF::UKF() {
   P_ = MatrixXd(n_x_, n_x_);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 5;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 5;
   
   /**
    * DO NOT MODIFY measurement noise values below.
@@ -105,14 +106,14 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
 }
 
-void UKF::GenerateSigmaPoints(MatrixXd &Xsig) {
+void UKF::GenerateSigmaPoints() {
   MatrixXd A = P_.llt().matrixL();
-  Xsig.col(0) = x_;
+  Xsig_pred_.col(0) = x_;
 
   // set remaining sigma points
   for (int i = 0; i < n_x_; ++i) {
-    Xsig.col(i+1)     = x_ + sqrt(lambda_+n_x_) * A.col(i);
-    Xsig.col(i+1+n_x_) = x_ - sqrt(lambda_+n_x_) * A.col(i);
+    Xsig_pred_.col(i+1)     = x_ + sqrt(lambda_+n_x_) * A.col(i);
+    Xsig_pred_.col(i+1+n_x_) = x_ - sqrt(lambda_+n_x_) * A.col(i);
   }
 
   // print result
@@ -150,6 +151,7 @@ void UKF::Prediction(double delta_t) {
    * Modify the state vector, x_. Predict sigma points, the state, 
    * and the state covariance matrix.
    */
+  GenerateSigmaPoints();
   AugmentState();
   // predict sigma points
   for (int i = 0; i< 2*n_aug_+1; ++i) {
@@ -197,7 +199,7 @@ void UKF::Prediction(double delta_t) {
   // predicted state mean
   x_.fill(0.0);
   for (int i = 0; i < 2 * n_aug_ + 1; ++i) {  // iterate over sigma points
-    x_ = x_ + weights_(i) * Xsig_pred_.col(i);
+    x_ += weights_(i) * Xsig_pred_.col(i);
   }
 
   // predicted state covariance matrix
@@ -317,6 +319,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   }
   // Predicted measurement mean
   VectorXd z_pred = VectorXd(n_z);
+  z_pred.fill(0.0);
   for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
     z_pred += Zsig.col(i) * weights_(i);
   }
