@@ -26,8 +26,8 @@ public:
 	bool visualize_radar = true;
 	bool visualize_pcd = false;
 	// Predict path in the future using UKF
-	double projectedTime = 1;
-	int projectedSteps = 5;
+	double projectedTime = 0;
+	int projectedSteps = 0;
 	// --------------------------------
 
 	Highway(pcl::visualization::PCLVisualizer::Ptr& viewer)
@@ -130,9 +130,13 @@ public:
 				VectorXd gt(4);
 				gt << traffic[i].position.x, traffic[i].position.y, traffic[i].velocity*cos(traffic[i].angle), traffic[i].velocity*sin(traffic[i].angle);
 				tools.ground_truth.push_back(gt);
+				//std::cout << "Speed before lidar: " << traffic[i].ukf.x_(2) << "\n";
 				tools.lidarSense(traffic[i], viewer, timestamp, visualize_lidar);
+				//std::cout << "Speed after lidar and before radar: " << traffic[i].ukf.x_(2) << "\n";
 				tools.radarSense(traffic[i], egoCar, viewer, timestamp, visualize_radar);
+				//std::cout << "Speed after radar and before prediction: " << traffic[i].ukf.x_(2) << "\n";
 				tools.ukfResults(traffic[i],viewer, projectedTime, projectedSteps);
+				//std::cout << "Speed after prediction: " << traffic[i].ukf.x_(2) << "\n";
 				VectorXd estimate(4);
 				double v  = traffic[i].ukf.x_(2);
     			double yaw = traffic[i].ukf.x_(3);

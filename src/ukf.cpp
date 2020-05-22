@@ -29,10 +29,10 @@ UKF::UKF() {
   P_ = MatrixXd(n_x_, n_x_);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 5;
+  std_a_ = 2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 5;
+  std_yawdd_ = 2;
   
   /**
    * DO NOT MODIFY measurement noise values below.
@@ -87,16 +87,25 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
               0, 
               0,
               0;
-      }
+        P_(0,0) = std_laspx_*std_laspx_;
+        P_(1,1) = std_laspy_*std_laspy_;  
+      } 
       else if (meas_package.sensor_type_ == MeasurementPackage::RADAR){
         x_ << meas_package.raw_measurements_[0]*cos(meas_package.raw_measurements_[1]), 
               meas_package.raw_measurements_[0]*sin(meas_package.raw_measurements_[1]), 
               0, 
               0,
               0;
+        P_ = P_ * std_radr_*std_radr_;
       }
       is_initialized_ = true;
     }
+    else
+    {
+      Prediction((meas_package.timestamp_ - time_us_)/1000000.0);
+    }
+    time_us_ = meas_package.timestamp_;
+
 	  if (meas_package.sensor_type_ == MeasurementPackage::LASER){
       UpdateLidar(meas_package);
     }
@@ -123,9 +132,9 @@ void UKF::GenerateSigmaPoints() {
 void UKF::AugmentState(){
   Xsig_aug_ = MatrixXd(n_aug_, 2 * n_aug_ + 1);
   // create augmented state covariance
-  P_aug_ = MatrixXd(7, 7);
+  P_aug_ = MatrixXd(n_aug_, n_aug_);
   // create augmented mean state
-  x_aug_.head(5) = x_;
+  x_aug_.head(n_x_) = x_;
   x_aug_(5) = 0;
   x_aug_(6) = 0;
 
@@ -211,7 +220,7 @@ void UKF::Prediction(double delta_t) {
     while (x_diff(3)> M_PI) x_diff(3)-=2.*M_PI;
     while (x_diff(3)<-M_PI) x_diff(3)+=2.*M_PI;
 
-    P_ = P_ + weights_(i) * x_diff * x_diff.transpose() ;
+    P_ += weights_(i) * x_diff * x_diff.transpose() ;
   }
 }
 
@@ -315,7 +324,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     // measurement model
     Zsig(0,i) = sqrt(p_x*p_x + p_y*p_y);                       // r
     Zsig(1,i) = atan2(p_y,p_x);                                // phi
-    Zsig(2,i) = (p_x!=0 || p_y!=0)?(p_x*v1 + p_y*v2) / sqrt(p_x*p_x + p_y*p_y) : 0;   // r_dot
+    Zsig(2,i) = (p_x!=0 || p_y!=0)?(p_x*v1 + p_y*v2) / Zsig(0,i):0;   // r_dot
   }
   // Predicted measurement mean
   VectorXd z_pred = VectorXd(n_z);
@@ -347,7 +356,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   MatrixXd Tc = MatrixXd(n_x_, n_z);
   // calculate cross correlation matrix
   Tc.fill(0.0);
-  for (int i = 0; i < 2 * n_aug_ + 1; ++i) {  // 2n+1 simga points
+  for (int i = 0; i < 2 * n_aug_ + 1; ++i) {  // 2n+1 sigma points
     // residual
     VectorXd z_diff = Zsig.col(i) - z_pred;
     // angle normalization
